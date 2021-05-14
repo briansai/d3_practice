@@ -21,51 +21,77 @@ const xAxisGroup = graph
   .attr('transform', `translate(0, ${graphHeight})`);
 const yAxisGroup = graph.append('g');
 
-// enter and join data to create rectangles
-db.collection('dishes')
-  .get()
-  .then((res) => {
-    const data = res.docs.reduce((acc, cur) => {
-      acc.push(cur.data());
-      return acc;
-    }, []);
+// scales
+const yBar = d3.scaleLinear().range([graphHeight, 0]);
+const xBar = d3.scaleBand().range([0, 500]).paddingInner(0.2).paddingOuter(0.2);
 
-    const yBar = d3
-      .scaleLinear()
-      .domain([0, d3.max(data, (d) => d.orders)])
-      .range([graphHeight, 0]);
-    const xBar = d3
-      .scaleBand()
-      .domain(data.map((item) => item.name))
-      .range([0, 500])
-      .paddingInner(0.2)
-      .paddingOuter(0.2);
-    const rects = graph.selectAll('rect').data(data);
-    rects
-      .attr('width', xBar.bandwidth)
-      .attr('height', (d) => graphHeight - yBar(d.orders))
-      .attr('fill', 'orange')
-      .attr('x', (d) => xBar(d.name))
-      .attr('y', (d) => yBar(d.orders));
-    rects
-      .enter()
-      .append('rect')
-      .attr('width', xBar.bandwidth)
-      .attr('height', (d) => graphHeight - yBar(d.orders))
-      .attr('fill', 'orange')
-      .attr('x', (d) => xBar(d.name))
-      .attr('y', (d) => yBar(d.orders));
-    // create and call the axes
-    const xAxis = d3.axisBottom(xBar);
-    const yAxis = d3
-      .axisLeft(yBar)
-      .ticks(3)
-      .tickFormat((d) => `${d} orders`);
-    xAxisGroup.call(xAxis);
-    yAxisGroup.call(yAxis);
-    xAxisGroup
-      .selectAll('text')
-      .attr('transform', 'rotate(-40)')
-      .attr('text-anchor', 'end')
-      .attr('fill', 'orange');
+// create the axes
+const xAxis = d3.axisBottom(xBar);
+const yAxis = d3
+  .axisLeft(yBar)
+  .ticks(3)
+  .tickFormat((d) => `${d} orders`);
+
+xAxisGroup
+  .selectAll('text')
+  .attr('transform', 'rotate(-40)')
+  .attr('text-anchor', 'end')
+  .attr('fill', 'orange');
+
+// update function
+const update = (data) => {
+  yBar.domain([0, d3.max(data, (d) => d.orders)]);
+  xBar.domain(data.map((item) => item.name));
+
+  // join data to rects
+  const rects = graph.selectAll('rect').data(data);
+
+  // remove exit selection
+  rects.exit().remove();
+
+  // update current shapes
+  rects
+    .attr('width', xBar.bandwidth)
+    .attr('height', (d) => graphHeight - yBar(d.orders))
+    .attr('fill', 'orange')
+    .attr('x', (d) => xBar(d.name))
+    .attr('y', (d) => yBar(d.orders));
+
+  rects
+    .enter()
+    .append('rect')
+    .attr('width', xBar.bandwidth)
+    .attr('height', (d) => graphHeight - yBar(d.orders))
+    .attr('fill', 'orange')
+    .attr('x', (d) => xBar(d.name))
+    .attr('y', (d) => yBar(d.orders));
+
+  // call axes
+  xAxisGroup.call(xAxis);
+  yAxisGroup.call(yAxis);
+};
+
+const data = [];
+
+db.collection('dishes').onSnapshot((res) => {
+  res.docChanges().forEach((change) => {
+    const doc = { ...change.doc.data(), id: change.doc.id };
+
+    switch (change.type) {
+      case 'added':
+        data.push(doc);
+        break;
+      case 'modified':
+        const index = data.findIndex((item) => item.id === doc.id);
+        data[index] = doc;
+        break;
+      case 'removed':
+        data = data.filter((item) => item.id !== doc.id);
+        break;
+      default:
+        break;
+    }
   });
+
+  update(data);
+});
