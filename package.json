@@ -16,5 +16,6 @@
   "bugs": {
     "url": "https://github.com/briansai/d3_practice/issues"
   },
-  "homepage": "https://github.com/briansai/d3_practice#readme"
+  "homepage": "https://github.com/briansai/d3_practice#readme",
+  "dependencies": {}
 }
