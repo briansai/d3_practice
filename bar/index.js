@@ -15,14 +15,20 @@ const graph = svg
   .attr('height', graphHeight)
   .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
+// group x-axis and y-axis
+const xAxisGroup = graph
+  .append('g')
+  .attr('transform', `translate(0, ${graphHeight})`);
+const yAxisGroup = graph.append('g');
+
 // enter and join data to create rectangles
 d3.json('menu.json').then((data) => {
-  const barY = d3
+  const yBar = d3
     .scaleLinear()
     .domain([0, d3.max(data, (d) => d.orders)])
-    .range([0, 500]);
+    .range([graphHeight, 0]);
 
-  const barX = d3
+  const xBar = d3
     .scaleBand()
     .domain(data.map((item) => item.name))
     .range([0, 500])
@@ -32,16 +38,25 @@ d3.json('menu.json').then((data) => {
   const rects = graph.selectAll('rect').data(data);
 
   rects
-    .attr('width', barX.bandwidth)
-    .attr('height', (d) => barY(d.orders))
+    .attr('width', xBar.bandwidth)
+    .attr('height', (d) => graphHeight - yBar(d.orders))
     .attr('fill', 'orange')
-    .attr('x', (d) => barX(d.name));
+    .attr('x', (d) => xBar(d.name))
+    .attr('y', (d) => yBar(d.orders));
 
   rects
     .enter()
     .append('rect')
-    .attr('width', barX.bandwidth)
-    .attr('height', (d) => barY(d.orders))
+    .attr('width', xBar.bandwidth)
+    .attr('height', (d) => graphHeight - yBar(d.orders))
     .attr('fill', 'orange')
-    .attr('x', (d) => barX(d.name));
+    .attr('x', (d) => xBar(d.name))
+    .attr('y', (d) => yBar(d.orders));
+
+  // create and call the axes
+  const xAxis = d3.axisBottom(xBar);
+  const yAxis = d3.axisLeft(yBar);
+
+  xAxisGroup.call(xAxis);
+  yAxisGroup.call(yAxis);
 });
