@@ -52,19 +52,22 @@ const update = (data) => {
   // update current shapes
   rects
     .attr('width', xBar.bandwidth)
-    .attr('height', (d) => graphHeight - yBar(d.orders))
     .attr('fill', 'orange')
-    .attr('x', (d) => xBar(d.name))
-    .attr('y', (d) => yBar(d.orders));
+    .attr('x', (d) => xBar(d.name));
 
   rects
     .enter()
     .append('rect')
     .attr('width', xBar.bandwidth)
-    .attr('height', (d) => graphHeight - yBar(d.orders))
+    .attr('height', 0)
     .attr('fill', 'orange')
     .attr('x', (d) => xBar(d.name))
-    .attr('y', (d) => yBar(d.orders));
+    .attr('y', graphHeight)
+    .merge(rects)
+    .transition(transition500)
+    .attrTween('width', widthTween)
+    .attr('y', (d) => yBar(d.orders))
+    .attr('height', (d) => graphHeight - yBar(d.orders));
 
   // call axes
   xAxisGroup.call(xAxis);
